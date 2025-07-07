@@ -1,0 +1,10 @@
+# config.toml
+[napcat]
+host = "127.0.0.1"
+port = 8095
+access_token = "" # 如果你的napcat设置了token
+
+[day_core]
+host = "127.0.0.1"
+port = 9999 # DaY-Core未来可能提供的API端口
+debug = true
