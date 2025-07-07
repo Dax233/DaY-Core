@@ -2,21 +2,33 @@
 import importlib
 import pkgutil
 from pathlib import Path
-from typing import Set, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .logger import logger
 
 if TYPE_CHECKING:
     from .bot import Bot
 
+
 class PluginManager:
-    def __init__(self, bot: "Bot"):
+    """插件管理器.
+
+    负责发现、加载和管理所有插件。
+    它会在指定的插件目录 (`plugins_human`, `plugins_ai`) 中搜索合法的 Python 模块，
+    并将其作为插件进行加载。
+
+    Attributes:
+        bot (Bot): Bot 实例的引用。
+        loaded_plugins (Set[str]): 一个集合，用于存放所有已成功加载的插件的名称，以防止重复加载。
+    """
+
+    def __init__(self, bot: "Bot") -> None:
         self.bot = bot
         # 使用集合来存储加载过的插件，防止重复加载
-        self.loaded_plugins: Set[str] = set()
+        self.loaded_plugins: set[str] = set()
 
-    def load_all_plugins(self):
-        """加载所有插件目录下的插件。"""
+    def load_all_plugins(self) -> None:
+        """加载所有插件目录下的插件."""
         # 定义插件目录的路径
         human_plugin_dir = Path("plugins_human")
         ai_plugin_dir = Path("plugins_ai")
@@ -26,8 +38,8 @@ class PluginManager:
         self._load_from_dir(ai_plugin_dir)
         logger.info(f"插件加载完毕，共加载了 {len(self.loaded_plugins)} 个插件。")
 
-    def _load_from_dir(self, plugin_dir: Path):
-        """从指定目录加载插件。"""
+    def _load_from_dir(self, plugin_dir: Path) -> None:
+        """从指定目录加载插件."""
         if not plugin_dir.is_dir():
             logger.warning(f"插件目录 {plugin_dir} 不存在，已跳过。")
             return

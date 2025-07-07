@@ -1,7 +1,8 @@
 # src/matcher.py
-import re
 import inspect
-from typing import List, Callable, Any, Dict, Type, TYPE_CHECKING, Set
+import re
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from .event import BaseEvent, MessageEvent
 from .logger import logger
@@ -9,35 +10,39 @@ from .message import Message
 
 # --- 这就是打破循环导入的魔法！ ---
 if TYPE_CHECKING:
-    from .bot import Bot
     from .adapters.base import Adapter
+    from .bot import Bot
 
 Handler = Callable[..., Any]
 
-class Matcher:
-    instances: List["Matcher"] = []
 
-    def __init__(self, rule: Callable[[BaseEvent], bool], priority: int = 10):
+class Matcher:
+    """事件响应器，我们框架的绝对核心."""
+
+    instances: ClassVar[list["Matcher"]] = []
+
+    def __init__(self, rule: Callable[[BaseEvent], bool], priority: int = 10) -> None:
         self.rule = rule
         self.priority = priority
-        self.handlers: List[Handler] = []
+        self.handlers: list[Handler] = []
         Matcher.instances.append(self)
         Matcher.instances.sort(key=lambda m: m.priority)
 
     def handle(self) -> Callable[[Handler], Handler]:
+        """装饰器，用于注册处理函数."""
+
         def decorator(func: Handler) -> Handler:
             self.handlers.append(func)
             return func
+
         return decorator
 
     @classmethod
-    async def run_all(cls, bot: "Bot", adapter: "Adapter", event: BaseEvent):
-        """
-        依赖注入的最终形态！
-        """
+    async def run_all(cls, bot: "Bot", adapter: "Adapter", event: BaseEvent) -> None:
+        """依赖注入的最终形态!"""
         # 在函数内部导入，避免在模块加载时出现问题
-        from .bot import Bot
         from .adapters.base import Adapter
+        from .bot import Bot
 
         for matcher in cls.instances:
             try:
@@ -55,14 +60,15 @@ class Matcher:
                                 injection_args[param_name] = adapter
                             # issubclass 可以判断一个实例是否是某个类或其子类的实例
                             # 对于类型注解，我们需要判断 event 的类是否是注解类的子类
-                            elif inspect.isclass(param.annotation) and issubclass(type(event), param.annotation):
+                            elif inspect.isclass(param.annotation) and issubclass(
+                                type(event), param.annotation
+                            ):
                                 injection_args[param_name] = event
                             elif param.annotation == Message:
                                 if isinstance(event, MessageEvent):
                                     injection_args[param_name] = event.message
-                            elif param.annotation == re.Match:
-                                if isinstance(rule_result, re.Match):
-                                    injection_args[param_name] = rule_result
+                            elif param.annotation == re.Match and isinstance(rule_result, re.Match):
+                                injection_args[param_name] = rule_result
 
                         await handler(**injection_args)
             except Exception as e:
@@ -71,28 +77,70 @@ class Matcher:
 
 # --- 工厂函数保持不变 ---
 def on_message(priority: int = 10) -> Matcher:
+    """创建一个基于消息事件的 Matcher.
+
+    Args:
+        priority (int): 匹配器的优先级，数值越小优先级越高。
+    Returns:
+        Matcher: 返回一个 Matcher 实例。
+    """
+
     def rule(event: BaseEvent) -> bool:
         return isinstance(event, MessageEvent)
+
     return Matcher(rule=rule, priority=priority)
+
 
 def on_command(command: str, priority: int = 5) -> Matcher:
+    """创建一个基于命令的 Matcher.
+
+    Args:
+        command (str): 命令字符串，通常以斜杠开头。
+        priority (int): 匹配器的优先级，数值越小优先级越高。
+    Returns:
+        Matcher: 返回一个 Matcher 实例。
+    """
+
     def rule(event: BaseEvent) -> bool:
         return isinstance(event, MessageEvent) and event.raw_message.strip().startswith(command)
+
     return Matcher(rule=rule, priority=priority)
 
-def on_keyword(keywords: Set[str], priority: int = 8) -> Matcher:
+
+def on_keyword(keywords: set[str], priority: int = 8) -> Matcher:
+    """创建一个基于关键词的 Matcher.
+
+    Args:
+        keywords (set[str]): 关键词集合。
+        priority (int): 匹配器的优先级，数值越小优先级越高。
+    Returns:
+        Matcher: 返回一个 Matcher 实例。
+    """
+
     def rule(event: BaseEvent) -> bool:
         if not isinstance(event, MessageEvent):
             return False
         message_text = event.message.get_plain_text()
         return any(keyword in message_text for keyword in keywords)
+
     return Matcher(rule=rule, priority=priority)
 
+
 def on_regex(pattern: str, priority: int = 9) -> Matcher:
+    """创建一个基于正则表达式的 Matcher.
+
+    Args:
+        pattern (str): 正则表达式模式。
+        priority (int): 匹配器的优先级，数值越小优先级越高。
+    Returns:
+        Matcher: 返回一个 Matcher 实例。
+    """
     compiled_pattern = re.compile(pattern)
+
     def rule(event: BaseEvent) -> re.Match | bool:
         if not isinstance(event, MessageEvent):
             return False
         match = compiled_pattern.search(event.raw_message)
         return match or False
+
     return Matcher(rule=rule, priority=priority)

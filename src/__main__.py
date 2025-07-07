@@ -1,11 +1,14 @@
 # src/__main__.py (最终修正版)
 import asyncio
-from .logger import logger
-from .bot import Bot
+import signal
 
-async def main():
-    """
-    DaY-Core 的主异步入口。
+from .bot import Bot
+from .logger import logger
+
+
+async def main() -> None:
+    """DaY-Core 的主异步入口.
+
     它负责启动机器人，并处理优雅的关闭流程。
     """
     # 初始化我们的机器人实例
@@ -17,7 +20,8 @@ async def main():
 
     # 定义一个信号处理器，当收到 SIGINT (Ctrl+C) 或 SIGTERM 时，
     # 它会设置我们的关闭信号，从而让主程序知道是时候该退出了。
-    def handle_signal(sig):
+    def handle_signal(sig: signal.Signals) -> None:
+        """处理操作系统信号的回调函数."""
         logger.info(f"收到关闭信号 {sig.name}，正在准备关闭...")
         shutdown_signal.set()
 
@@ -25,7 +29,6 @@ async def main():
     # 在 async 函数内部调用 get_running_loop 是绝对安全的。
     loop = asyncio.get_running_loop()
     try:
-        import signal
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, handle_signal, sig)
     except NotImplementedError:
@@ -57,5 +60,5 @@ if __name__ == "__main__":
         # 在 Windows 或其他 asyncio.run 能直接捕获 KeyboardInterrupt 的情况下，
         # 我们会在这里看到一条消息，然后程序正常退出。
         logger.info("DaY-Core 已通过 KeyboardInterrupt 关闭。")
-    
+
     logger.info("DaY-Core 已完全关闭。")

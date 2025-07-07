@@ -1,0 +1,68 @@
+# pyproject.toml
+# DaY-Core 的项目配置文件，也是我们的“戒律圣典”
+
+[tool.ruff]
+# 我们的代码将以 Python 3.10+ 为目标。
+# 这是一个比较稳定且广泛支持的版本，兼顾了现代特性和兼容性。
+target-version = "py310"
+
+# 行长限制，100-120 都是不错的选择，100 更紧凑一些。我们先用 100 试试看~
+line-length = 100
+
+# 指定源码目录，Ruff 会主要检查这里
+src = ["src", "plugins_human", "plugins_ai"]
+
+[tool.ruff.lint]
+# 开启所有可自动修复的规则，让 `ruff check --fix` 发挥最大威力！
+fixable = ["ALL"]
+
+# 选择我们信奉的规则集！
+# 我在你的基础上，增加了 D (pydocstyle)，因为清晰的文档字符串是框架的灵魂！
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes (逻辑错误)
+    "I",    # isort (导入排序)
+    "N",    # pep8-naming (命名规范)
+    "UP",   # pyupgrade (代码现代化)
+    "ANN",  # flake8-annotations (类型注解检查)
+    "B",    # flake8-bugbear (潜在bug)
+    "C4",   # flake8-comprehensions (推导式优化)
+    "SIM",  # flake8-simplify (代码简化)
+    "D",    # pydocstyle (文档字符串规范)
+    "RUF",  # Ruff 特有规则
+]
+
+# 忽略一些规则，让我们的代码更自由~
+ignore = [
+    "D100",   # 模块缺少文档字符串
+    "D104",   # 公共包缺少文档字符串
+    "D107",   # `__init__` 方法缺少文档字符串
+    "ANN401", # 不建议使用 `Any` 类型
+    "RUF001", # <--- 把我们对全角逗号的豁免权写在这里！
+    "RUF002",
+    "RUF003",
+]
+
+# 允许未使用的变量以下划线开头，这是 Python 的惯例
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.pydocstyle]
+# 文档字符串风格，我们采用 Google 风格，非常清晰！
+convention = "google"
+
+[tool.ruff.format]
+# 我们是坚定的“双引号”党！它让代码看起来更统一！
+quote-style = "double"
+
+# 缩进风格，当然是宇宙通用的 4 个空格
+indent-style = "space"
+
+# 尊重魔法尾随逗号，这在多人协作和 git diff 时非常有用
+skip-magic-trailing-comma = false
+
+# 自动格式化文档字符串里的代码块
+docstring-code-format = true
+
+# 自动检测换行符，适应不同操作系统
+line-ending = "auto"

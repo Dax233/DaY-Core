@@ -1,23 +1,25 @@
 # src/api.py
 import asyncio
-import time
-from typing import Dict, Any, Optional
+from typing import Any
 
 from .logger import logger
 
 # 这个字典用来存放我们所有待处理的“祈祷”
 # key 是请求的 echo ID，value 是一个 asyncio.Future 对象，代表着对“神谕”的期待
-_pending_futures: Dict[str, asyncio.Future] = {}
+_pending_futures: dict[str, asyncio.Future] = {}
+
 
 class APICallFailed:
+    """API 调用失败的异常类."""
+
     pass
+
 
 API_FAILED = APICallFailed()
 
-async def wait_for_response(echo: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
-    """
-    等待一个特定 echo 的 API 响应。
-    """
+
+async def wait_for_response(echo: str, timeout: float = 30.0) -> dict[str, Any] | None:
+    """等待一个特定 echo 的 API 响应."""
     future = asyncio.Future()
     _pending_futures[echo] = future
     try:
@@ -32,10 +34,9 @@ async def wait_for_response(echo: str, timeout: float = 30.0) -> Optional[Dict[s
         # 无论成功还是失败，都要把这个“祈祷”从等待列表中移除
         _pending_futures.pop(echo, None)
 
-def resolve_response(response: Dict[str, Any]):
-    """
-    当收到 Napcat 的响应时，调用此函数来回应我们的“祈祷”。
-    """
+
+def resolve_response(response: dict[str, Any]) -> None:
+    """当收到 Napcat 的响应时，调用此函数来回应我们的“祈祷”."""
     echo = response.get("echo")
     if not echo:
         return
