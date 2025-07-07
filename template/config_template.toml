@@ -1,10 +1,15 @@
-# config.toml
-[napcat]
-host = "127.0.0.1"
-port = 8095
-access_token = "" # 如果你的napcat设置了token
+# DaY-Core 配置文件模板
+# 当 config.toml 不存在或版本过旧时，程序会以此为模板创建或更新。
 
-[day_core]
+config_version = "0.1.0"
+
+[adapter.napcat]
+# DaY-Core 作为服务器，监听来自 Napcat 客户端的连接地址和端口
 host = "127.0.0.1"
-port = 9999 # DaY-Core未来可能提供的API端口
+port = 7094
+
+[core]
+# 框架核心设置
 debug = true
+# 日志级别: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+log_level = "INFO"

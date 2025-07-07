@@ -2,19 +2,22 @@
 import asyncio
 from .logger import logger
 from .adapters.napcat import NapcatAdapter
+from .plugin import PluginManager # 导入插件管理器
+from .config import get_config
 
 class Bot:
     def __init__(self):
+        self.config = get_config()
         self.adapter = NapcatAdapter(self)
+        self.plugin_manager = PluginManager(self) # 创建插件管理器实例
 
-    # run 方法变成 async
     async def run(self):
-        logger.info("Bot 核心已启动，正在命令 Napcat 使徒出击...")
-        # adapter.run() 也应该是 async
+        logger.info("Bot 核心已启动...")
+        # 在启动 adapter 之前加载所有插件
+        self.plugin_manager.load_all_plugins()
+        logger.info("正在命令 Napcat 使徒出击...")
         await self.adapter.run()
 
-    # stop 方法也变成 async
     async def stop(self):
         logger.info("Bot 核心收到停止信号，正在召回 Napcat 使徒...")
-        # adapter.stop() 也应该是 async
         await self.adapter.stop()
