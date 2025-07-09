@@ -4,16 +4,14 @@
 from src.adapters.base import Adapter
 from src.event import FriendAddRequestEvent, GroupAddRequestEvent
 from src.logger import logger
-from src.matcher import Matcher
+from src.matcher import on_request
+
 
 # ======================================================================
 # 好友请求处理器
 # 只要有人加好友，就自动同意！像一个热情好客的孩子w
 # ======================================================================
-friend_request_matcher = Matcher(lambda event: isinstance(event, FriendAddRequestEvent))
-
-
-@friend_request_matcher.handle()
+@on_request("friend").handle()
 async def handle_friend_request(adapter: Adapter, event: FriendAddRequestEvent) -> None:
     """处理好友添加请求.
 
@@ -34,10 +32,7 @@ async def handle_friend_request(adapter: Adapter, event: FriendAddRequestEvent) 
 # 加群请求处理器
 # 这里可以写一些有趣的逻辑
 # ======================================================================
-group_request_matcher = Matcher(lambda event: isinstance(event, GroupAddRequestEvent))
-
-
-@group_request_matcher.handle()
+@on_request("group").handle()
 async def handle_group_request(adapter: Adapter, event: GroupAddRequestEvent) -> None:
     """处理加群请求或邀请.
 

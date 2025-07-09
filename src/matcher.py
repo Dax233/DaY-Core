@@ -146,35 +146,45 @@ def on_regex(pattern: str, priority: int = 9) -> Matcher:
     return Matcher(rule=rule, priority=priority)
 
 
-def on_notice(priority: int = 10) -> Matcher:
-    """创建一个匹配所有通知事件的 Matcher.
+def on_notice(notice_type: str | None = None, priority: int = 10) -> Matcher:
+    """创建一个匹配通知事件的 Matcher.
 
     Args:
+        notice_type (str | None): 可选，指定要匹配的 notice_type，如 'group_increase'。
+                                  如果为 None，则匹配所有通知事件。
         priority (int): 匹配器的优先级。
     Returns:
         Matcher: 返回一个 Matcher 实例。
     """
 
     def rule(event: BaseEvent) -> bool:
-        # 只要是 NoticeEvent 的子类实例，就都能匹配！
-        return isinstance(event, NoticeEvent)
-
+        # 基础规则：必须是 NoticeEvent
+        if not isinstance(event, NoticeEvent):
+            return False
+        # 进阶规则：如果指定了 notice_type，就必须匹配！
+        return not (notice_type is not None and event.notice_type != notice_type)
+    # 所有规则都通过了
     return Matcher(rule=rule, priority=priority)
 
 
-def on_request(priority: int = 10) -> Matcher:
-    """创建一个匹配所有请求事件的 Matcher.
+def on_request(request_type: str | None = None, priority: int = 10) -> Matcher:
+    """创建一个匹配请求事件的 Matcher.
 
     Args:
+        request_type (str | None): 可选，指定要匹配的 request_type，如 'friend' 或 'group'。
+                                   如果为 None，则匹配所有请求事件。
         priority (int): 匹配器的优先级。
     Returns:
         Matcher: 返回一个 Matcher 实例。
     """
 
     def rule(event: BaseEvent) -> bool:
-        # 同理，匹配所有 RequestEvent
-        return isinstance(event, RequestEvent)
-
+        # 基础规则：必须是 RequestEvent
+        if not isinstance(event, RequestEvent):
+            return False
+        # 进阶规则：如果指定了 request_type，就必须匹配！
+        return not (request_type is not None and event.request_type != request_type)
+    # 所有规则都通过了
     return Matcher(rule=rule, priority=priority)
 
 

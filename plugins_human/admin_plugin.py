@@ -20,23 +20,23 @@ async def handle_kick(adapter: Adapter, event: GroupMessageEvent) -> None:
     # 简单的权限检查
     sender_role = event.sender.get("role") if event.sender else "member"
     if sender_role not in {"owner", "admin"}:
-        await adapter.send_message(event.group_id, "group", Message.text("你没有权限哦！"))
+        await adapter.send_message(event.group_id, "group", Message().text("你没有权限哦！"))
         return
 
     # 从消息中解析出要踢的人
     match = re.search(r"\[CQ:at,qq=(\d+)\]", event.raw_message)
     if not match:
-        await adapter.send_message(event.group_id, "group", Message.text("请 @ 你要踢的人。"))
+        await adapter.send_message(event.group_id, "group", Message().text("请 @ 你要踢的人。"))
         return
 
     user_to_kick = match.group(1)
 
     # 不能踢自己或者机器人
     if user_to_kick == event.user_id:
-        await adapter.send_message(event.group_id, "group", Message.text("你不能踢自己呀！"))
+        await adapter.send_message(event.group_id, "group", Message().text("你不能踢自己呀！"))
         return
     if user_to_kick == event.self_id:
-        await adapter.send_message(event.group_id, "group", Message.text("我才不要踢我自己呢！"))
+        await adapter.send_message(event.group_id, "group", Message().text("我才不要踢我自己呢！"))
         return
 
     logger.info(f"准备在群 {event.group_id} 中踢出成员 {user_to_kick}...")
@@ -50,12 +50,12 @@ async def handle_kick(adapter: Adapter, event: GroupMessageEvent) -> None:
         # 只要不是失败信号，就都算成功！
         # 无论 result 是 None, {}, 还是其他数据
         await adapter.send_message(
-            event.group_id, "group", Message.text(f"已将用户 {user_to_kick} 移出本群。")
+            event.group_id, "group", Message().text(f"已将用户 {user_to_kick} 移出本群。")
         )
     else:
         # 只有当 result 确确实实是 API_FAILED 时，才算失败
         await adapter.send_message(
             event.group_id,
             "group",
-            Message.text("操作失败，可能是我没有权限，或者发生了未知错误。"),
+            Message().text("操作失败，可能是我没有权限，或者发生了未知错误。"),
         )
