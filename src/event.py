@@ -46,3 +46,95 @@ class GroupMessageEvent(MessageEvent):
 
     message_type: str = "group"
     group_id: str = ""
+
+
+@dataclass
+class NoticeEvent(BaseEvent):
+    """通知事件的基类."""
+
+    post_type: str = "notice"
+    notice_type: str = ""
+
+
+@dataclass
+class GroupMemberIncreaseNoticeEvent(NoticeEvent):
+    """群成员增加事件.
+
+    Attributes:
+        notice_type (str): "group_increase"
+        group_id (str): 群号
+        user_id (str): 新成员的 QQ 号
+        operator_id (str): 操作者的 QQ 号 (邀请者或管理员)
+    """
+
+    notice_type: str = "group_increase"
+    group_id: str = ""
+    user_id: str = ""
+    operator_id: str = ""
+
+
+@dataclass
+class GroupMemberDecreaseNoticeEvent(NoticeEvent):
+    """群成员减少事件.
+
+    Attributes:
+        notice_type (str): "group_decrease"
+        group_id (str): 群号
+        user_id (str): 离开成员的 QQ 号
+        operator_id (str): 操作者的 QQ 号 (如果是被踢)
+        sub_type (str): "leave" (主动退群), "kick" (被踢), "kick_me" (机器人自己被踢)
+    """
+
+    notice_type: str = "group_decrease"
+    group_id: str = ""
+    user_id: str = ""
+    operator_id: str = ""
+    sub_type: str = ""
+
+
+@dataclass
+class GroupPokeNoticeEvent(NoticeEvent):
+    """群内戳一戳事件.
+
+    Attributes:
+        notice_type (str): "notify"
+        sub_type (str): "poke"
+        group_id (str): 群号
+        user_id (str): 发起戳一戳的成员 QQ 号
+        target_id (str): 被戳的成员 QQ 号 (可能是我自己！)
+    """
+
+    notice_type: str = "notify"
+    sub_type: str = "poke"
+    group_id: str = ""
+    user_id: str = ""
+    target_id: str = ""
+
+
+@dataclass
+class RequestEvent(BaseEvent):
+    """请求事件的基类."""
+
+    post_type: str = "request"
+    request_type: str = ""
+    flag: str = ""  # 这是同意/拒绝请求的关键凭证！一定要保存好！
+
+
+@dataclass
+class FriendAddRequestEvent(RequestEvent):
+    """好友添加请求."""
+
+    request_type: str = "friend"
+    user_id: str = ""
+    comment: str = ""  # 验证信息
+
+
+@dataclass
+class GroupAddRequestEvent(RequestEvent):
+    """加群请求/邀请."""
+
+    request_type: str = "group"
+    sub_type: str = ""  # "add" (申请加群), "invite" (被邀请入群)
+    group_id: str = ""
+    user_id: str = ""
+    comment: str = ""  # 验证信息

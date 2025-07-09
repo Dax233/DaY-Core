@@ -4,7 +4,7 @@ import re
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from .event import BaseEvent, MessageEvent
+from .event import BaseEvent, MessageEvent, NoticeEvent, RequestEvent
 from .logger import logger
 from .message import Message
 
@@ -144,3 +144,41 @@ def on_regex(pattern: str, priority: int = 9) -> Matcher:
         return match or False
 
     return Matcher(rule=rule, priority=priority)
+
+
+def on_notice(priority: int = 10) -> Matcher:
+    """创建一个匹配所有通知事件的 Matcher.
+
+    Args:
+        priority (int): 匹配器的优先级。
+    Returns:
+        Matcher: 返回一个 Matcher 实例。
+    """
+
+    def rule(event: BaseEvent) -> bool:
+        # 只要是 NoticeEvent 的子类实例，就都能匹配！
+        return isinstance(event, NoticeEvent)
+
+    return Matcher(rule=rule, priority=priority)
+
+
+def on_request(priority: int = 10) -> Matcher:
+    """创建一个匹配所有请求事件的 Matcher.
+
+    Args:
+        priority (int): 匹配器的优先级。
+    Returns:
+        Matcher: 返回一个 Matcher 实例。
+    """
+
+    def rule(event: BaseEvent) -> bool:
+        # 同理，匹配所有 RequestEvent
+        return isinstance(event, RequestEvent)
+
+    return Matcher(rule=rule, priority=priority)
+
+
+# --- 思考题：这里的实现还可以更酷！---
+# 比如 on_notice("group_increase") 这样的写法，
+# 可以在 rule 函数里判断 event.notice_type 是否等于 "group_increase"。
+# 不过现在这样已经完全可用了，优化可以放在下一个版本！(ゝ∀･)

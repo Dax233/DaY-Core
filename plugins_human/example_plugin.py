@@ -1,6 +1,5 @@
 # plugins_human/example_plugin.py
 from src.adapters.base import Adapter
-from src.bot import Bot
 from src.event import MessageEvent
 from src.logger import logger
 from src.matcher import on_command
@@ -11,7 +10,7 @@ ping_matcher = on_command("ping")
 
 
 @ping_matcher.handle()
-async def handle_ping(bot: "Bot", adapter: Adapter, event: MessageEvent) -> None:
+async def handle_ping(adapter: Adapter, event: MessageEvent) -> None:
     """处理 ping 命令，回复 pong!.
 
     Args:
@@ -22,7 +21,7 @@ async def handle_ping(bot: "Bot", adapter: Adapter, event: MessageEvent) -> None
     logger.info(f"插件收到了来自 {event.get_user_id()} 的 ping 命令！")
 
     # 构建回复消息
-    reply_message = Message([Message.text("pong!")])
+    reply_message = Message().reply(event.message_id).text("pong! (｡ゝω･)bﾞ")
 
     # 调用 adapter 发送回复
     await adapter.send_message(

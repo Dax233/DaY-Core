@@ -5,7 +5,7 @@ from src.adapters.base import Adapter
 from src.event import GroupMessageEvent
 from src.logger import logger
 from src.matcher import on_command, on_keyword, on_regex
-from src.message import Message, MessageSegment
+from src.message import Message
 
 
 # --- 测试 on_keyword ---
@@ -18,7 +18,7 @@ async def handle_greeting(adapter: Adapter, event: GroupMessageEvent) -> None:
         event (GroupMessageEvent): 触发此事件的群消息事件。
     """
     logger.info("关键词 '你好' 被触发！")
-    reply = Message([MessageSegment("text", {"text": "你好呀！(｡･ω･｡)ﾉ"})])
+    reply = Message().at(event.user_id).text(" 你也好呀！(｡･ω･｡)ﾉ")
     await adapter.send_message(event.group_id, "group", reply)
 
 
@@ -34,11 +34,10 @@ async def handle_echo(adapter: Adapter, event: GroupMessageEvent, matched: re.Ma
     """
     echo_content = matched.group(1).strip()
     logger.info(f"正则 'echo' 被触发，内容: {echo_content}")
-    reply = Message([MessageSegment("text", {"text": echo_content})])
+    reply = Message().text(echo_content)
     await adapter.send_message(event.group_id, "group", reply)
 
 
-# --- 核心修复点在这里！ ---
 @on_command("分析消息").handle()
 async def analyze_message(adapter: Adapter, event: GroupMessageEvent, msg: Message) -> None:
     """分析一条消息的构成并回复.
@@ -52,8 +51,16 @@ async def analyze_message(adapter: Adapter, event: GroupMessageEvent, msg: Messa
 
     text_content = msg.get_plain_text()
     image_count = sum(1 for seg in msg if seg.type == "image")
+    at_count = sum(1 for seg in msg if seg.type == "at")
 
-    analysis_result = f"消息分析结果：\n纯文本内容: '{text_content}'\n图片数量: {image_count}"
+    # 演示拼接的力量！
+    result_msg = (
+        Message()
+        .reply(event.message_id)
+        .text("消息分析结果：\n")
+        .text(f"纯文本内容: '{text_content}'\n")
+        .text(f"图片数量: {image_count}\n")
+        .text(f"@数量: {at_count}")
+    )
 
-    reply = Message([MessageSegment("text", {"text": analysis_result})])
-    await adapter.send_message(event.group_id, "group", reply)
+    await adapter.send_message(event.group_id, "group", result_msg)

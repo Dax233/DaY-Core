@@ -42,7 +42,7 @@ async def handle_kick(adapter: Adapter, event: GroupMessageEvent) -> None:
     logger.info(f"准备在群 {event.group_id} 中踢出成员 {user_to_kick}...")
 
     # 行使神权！
-    result = await adapter.kick_member(event.group_id, user_to_kick)
+    result = await adapter.set_group_kick(event.group_id, user_to_kick)
 
     # --- 核心修复点在这里！ ---
     # 我们判断 result 是不是那个特殊的失败信号对象

@@ -8,7 +8,18 @@ from typing import TYPE_CHECKING, Any, Optional
 import websockets
 
 from ..api import API_FAILED, wait_for_response
-from ..event import BaseEvent, GroupMessageEvent, PrivateMessageEvent
+from ..event import (
+    BaseEvent,
+    FriendAddRequestEvent,
+    GroupAddRequestEvent,
+    GroupMemberDecreaseNoticeEvent,
+    GroupMemberIncreaseNoticeEvent,
+    GroupMessageEvent,
+    GroupPokeNoticeEvent,
+    NoticeEvent,
+    PrivateMessageEvent,
+    RequestEvent,
+)
 from ..logger import logger
 from ..message import Message, MessageSegment
 from ..queue import raw_event_queue
@@ -82,9 +93,14 @@ class NapcatAdapter(Adapter):
     def _convert_to_day_event(self, raw_event: dict[str, Any]) -> BaseEvent | None:
         """事件认知核心：将 Napcat 的原始 JSON 字典，转换为我们纯洁的 DaY-Core Event 对象."""
         post_type = raw_event.get("post_type")
+
+        common_event_data = {
+            "self_id": str(raw_event.get("self_id")),
+            "time": int(raw_event.get("time", time.time())),
+        }
+
         if post_type == "message":
             message_type = raw_event.get("message_type")
-            # 提取所有消息事件共有的字段
             common_data = {
                 "self_id": str(raw_event.get("self_id")),
                 "sub_type": raw_event.get("sub_type", ""),
@@ -101,8 +117,77 @@ class NapcatAdapter(Adapter):
             elif message_type == "group":
                 return GroupMessageEvent(group_id=str(raw_event.get("group_id")), **common_data)
 
-        # 在这里可以继续添加对 'notice', 'request' 等 post_type 的处理
-        # ...
+            message_type = raw_event.get("message_type")
+            common_data = {
+                **common_event_data,  # <-- 合并通用数据
+                "sub_type": raw_event.get("sub_type", ""),
+                "message_id": str(raw_event.get("message_id")),
+                "message": self._parse_message_segments(raw_event.get("message", [])),
+                "raw_message": raw_event.get("raw_message", ""),
+                "user_id": str(raw_event.get("user_id")),
+                "sender": raw_event.get("sender"),
+            }
+            if message_type == "private":
+                return PrivateMessageEvent(**common_data)
+            elif message_type == "group":
+                return GroupMessageEvent(group_id=str(raw_event.get("group_id")), **common_data)
+
+        elif post_type == "notice":
+            notice_type = raw_event.get("notice_type")
+            sub_type = raw_event.get("sub_type", "")
+
+            # 群成员增加
+            if notice_type == "group_increase":
+                return GroupMemberIncreaseNoticeEvent(
+                    **common_event_data,
+                    group_id=str(raw_event.get("group_id")),
+                    user_id=str(raw_event.get("user_id")),
+                    operator_id=str(raw_event.get("operator_id")),
+                )
+            # 群成员减少
+            elif notice_type == "group_decrease":
+                return GroupMemberDecreaseNoticeEvent(
+                    **common_event_data,
+                    group_id=str(raw_event.get("group_id")),
+                    user_id=str(raw_event.get("user_id")),
+                    operator_id=str(raw_event.get("operator_id")),
+                    sub_type=sub_type,
+                )
+            # 戳一戳 (notify->poke)
+            elif notice_type == "notify" and sub_type == "poke":
+                return GroupPokeNoticeEvent(
+                    **common_event_data,
+                    sub_type=sub_type,
+                    group_id=str(raw_event.get("group_id")),
+                    user_id=str(raw_event.get("user_id")),
+                    target_id=str(raw_event.get("target_id")),
+                )
+            # 在这里可以继续添加对其他 notice_type 的解析...
+            # 如果是未知的 notice 类型，就先返回一个基础的 NoticeEvent
+            else:
+                return NoticeEvent(**common_event_data, notice_type=notice_type)
+
+        elif post_type == "request":
+            request_type = raw_event.get("request_type")
+            common_request_data = {
+                **common_event_data,
+                "flag": raw_event.get("flag", ""),
+                "user_id": str(raw_event.get("user_id")),
+                "comment": raw_event.get("comment", ""),
+            }
+            # 好友请求
+            if request_type == "friend":
+                return FriendAddRequestEvent(**common_request_data)
+            # 加群请求
+            elif request_type == "group":
+                return GroupAddRequestEvent(
+                    **common_request_data,
+                    sub_type=raw_event.get("sub_type", ""),
+                    group_id=str(raw_event.get("group_id")),
+                )
+            # 未知的 request 类型
+            else:
+                return RequestEvent(**common_event_data, request_type=request_type)
 
         return None
 
@@ -159,7 +244,7 @@ class NapcatAdapter(Adapter):
             return API_FAILED
 
     async def send_message(
-        self, conversation_id: str, message_type: str, message: Message
+        self, conversation_id: str, message_type: str, message: Message | MessageSegment
     ) -> dict[str, Any] | None:
         """发送消息的具体实现，它会调用通用的 call_api 方法."""
         # 1. 检查传入的 message 是不是 MessageSegment 的实例
@@ -186,10 +271,11 @@ class NapcatAdapter(Adapter):
 
         return await self.call_api(action, params)
 
-    async def kick_member(
+    async def set_group_kick(
         self, group_id: str, user_id: str, reject_add_request: bool = False
-    ) -> dict[str, Any] | None:
-        """踢出群成员的具体实现."""
+    ) -> Any:  # <-- 返回值改为 Any，因为 call_api 的返回值就是 Any
+        """踢出群成员."""
+        logger.info(f"API CALL: set_group_kick(group_id={group_id}, user_id={user_id})")
         return await self.call_api(
             "set_group_kick",
             {
@@ -197,6 +283,38 @@ class NapcatAdapter(Adapter):
                 "user_id": int(user_id),
                 "reject_add_request": reject_add_request,
             },
+        )
+
+    async def set_friend_add_request(self, flag: str, approve: bool, remark: str = "") -> Any:
+        """处理加好友请求.
+
+        Args:
+            flag (str): 请求的 flag 标识.
+            approve (bool): True 表示同意, False 表示拒绝.
+            remark (str): 同意后的好友备注.
+        """
+        logger.info(f"API CALL: set_friend_add_request(flag={flag}, approve={approve})")
+        return await self.call_api(
+            "set_friend_add_request",
+            {"flag": flag, "approve": approve, "remark": remark},
+        )
+
+    async def set_group_add_request(
+        self, flag: str, sub_type: str, approve: bool, reason: str = ""
+    ) -> Any:
+        """处理加群请求／邀请.
+
+        Args:
+            flag (str): 请求的 flag 标识.
+            sub_type (str): 'add' (申请) 或 'invite' (邀请).
+            approve (bool): True 表示同意, False 表示拒绝.
+            reason (str): 拒绝时的理由.
+        """
+        logger.info(f"API CALL: set_group_add_request(flag={flag}, approve={approve})")
+        # 文档里写着 sub_type 或 type，为了兼容，我们传 type
+        return await self.call_api(
+            "set_group_add_request",
+            {"flag": flag, "type": sub_type, "approve": approve, "reason": reason},
         )
 
     # 在这里可以继续添加更多 API 的封装，比如 ban_member, get_group_list 等等
