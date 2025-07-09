@@ -317,7 +317,42 @@ class NapcatAdapter(Adapter):
             {"flag": flag, "type": sub_type, "approve": approve, "reason": reason},
         )
 
-    # 在这里可以继续添加更多 API 的封装，比如 ban_member, get_group_list 等等
+    async def set_group_ban(self, group_id: str, user_id: str, duration: int = 1800) -> Any:
+        """对群成员进行禁言.
+
+        Args:
+            group_id (str): 群号.
+            user_id (str): 要禁言的 QQ 号.
+            duration (int): 禁言时长，单位为秒。0 表示解除禁言。默认为 30 分钟.
+        """
+        logger.info(
+            f"API CALL: set_group_ban(group_id={group_id}, user_id={user_id}, duration={duration}s)"
+        )
+        return await self.call_api(
+            "set_group_ban",
+            {
+                "group_id": int(group_id),
+                "user_id": int(user_id),
+                "duration": duration,
+            },
+        )
+
+    async def set_group_whole_ban(self, group_id: str, enable: bool = True) -> Any:
+        """对群进行全体禁言.
+
+        Args:
+            group_id (str): 群号.
+            enable (bool): True 为开启全员禁言, False 为关闭.
+        """
+        action = "开启" if enable else "关闭"
+        logger.info(
+            f"API CALL: set_group_whole_ban(group_id={group_id}, "
+            f"enable={enable}) - {action}全员禁言"
+        )
+        return await self.call_api(
+            "set_group_whole_ban",
+            {"group_id": int(group_id), "enable": enable},
+        )
 
     async def run(self) -> None:
         """启动 Adapter，也就是启动 WebSocket 服务器."""

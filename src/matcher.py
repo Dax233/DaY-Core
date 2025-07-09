@@ -163,6 +163,7 @@ def on_notice(notice_type: str | None = None, priority: int = 10) -> Matcher:
             return False
         # 进阶规则：如果指定了 notice_type，就必须匹配！
         return not (notice_type is not None and event.notice_type != notice_type)
+
     # 所有规则都通过了
     return Matcher(rule=rule, priority=priority)
 
@@ -184,6 +185,7 @@ def on_request(request_type: str | None = None, priority: int = 10) -> Matcher:
             return False
         # 进阶规则：如果指定了 request_type，就必须匹配！
         return not (request_type is not None and event.request_type != request_type)
+
     # 所有规则都通过了
     return Matcher(rule=rule, priority=priority)
 
