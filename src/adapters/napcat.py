@@ -354,6 +354,77 @@ class NapcatAdapter(Adapter):
             {"group_id": int(group_id), "enable": enable},
         )
 
+    async def get_group_list(self, no_cache: bool = False) -> list[dict[str, Any]] | Any:
+        """获取群列表.
+
+        Args:
+            no_cache (bool): 是否不使用缓存。
+
+        Returns:
+            list[dict[str, Any]] | Any: 成功时返回群信息字典的列表, 失败时返回 API_FAILED.
+        """
+        logger.info(f"API CALL: get_group_list(no_cache={no_cache})")
+        return await self.call_api("get_group_list", {"no_cache": no_cache})
+
+    async def get_group_member_list(
+        self, group_id: str, no_cache: bool = False
+    ) -> list[dict[str, Any]] | Any:
+        """获取群成员列表.
+
+        Args:
+            group_id (str): 群号.
+            no_cache (bool): 是否不使用缓存。
+
+        Returns:
+            list[dict[str, Any]] | Any: 成功时返回群成员信息字典的列表, 失败时返回 API_FAILED.
+        """
+        logger.info(f"API CALL: get_group_member_list(group_id={group_id}, no_cache={no_cache})")
+        return await self.call_api(
+            "get_group_member_list",
+            {"group_id": int(group_id), "no_cache": no_cache},
+        )
+
+    async def get_group_member_info(
+        self, group_id: str, user_id: str, no_cache: bool = False
+    ) -> dict[str, Any] | Any:
+        """获取群成员信息.
+
+        Args:
+            group_id (str): 群号.
+            user_id (str): QQ 号.
+            no_cache (bool): 是否不使用缓存。
+
+        Returns:
+            dict[str, Any] | Any: 成功时返回群成员信息字典, 失败时返回 API_FAILED.
+        """
+        logger.info(
+            f"API CALL: get_group_member_info(group_id={group_id}, "
+            f"user_id={user_id}, no_cache={no_cache})"
+        )
+        return await self.call_api(
+            "get_group_member_info",
+            {
+                "group_id": int(group_id),
+                "user_id": int(user_id),
+                "no_cache": no_cache,
+            },
+        )
+
+    async def get_stranger_info(self, user_id: str, no_cache: bool = False) -> dict[str, Any] | Any:
+        """获取陌生人信息.
+
+        Args:
+            user_id (str): QQ 号.
+            no_cache (bool): 是否不使用缓存。
+
+        Returns:
+            dict[str, Any] | Any: 成功时返回陌生人信息字典, 失败时返回 API_FAILED.
+        """
+        logger.info(f"API CALL: get_stranger_info(user_id={user_id}, no_cache={no_cache})")
+        return await self.call_api(
+            "get_stranger_info", {"user_id": int(user_id), "no_cache": no_cache}
+        )
+
     async def run(self) -> None:
         """启动 Adapter，也就是启动 WebSocket 服务器."""
         logger.info("Napcat 使徒 (服务器模式) 已准备就绪，开门迎客！")
