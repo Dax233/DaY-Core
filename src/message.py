@@ -118,3 +118,109 @@ class Message(list[MessageSegment]):
         # 为了最佳实践，我们把它插入到列表的开头
         self.insert(0, MessageSegment("reply", {"id": str(message_id)}))
         return self
+
+    def node(self, uin: str, name: str, content: "Message | MessageSegment | str") -> Self:
+        """追加一个合并转发节点 (node).
+
+        **警告**: 此方法遵循 Napcat/LLOneBot 的实现，而非 go-cqhttp 标准。
+
+        Args:
+            uin (str): 节点中显示的用户 QQ 号 (在 Napcat 中称为 uin).
+            name (str): 节点中显示的用户昵称 (在 Napcat 中称为 name).
+            content (Message | MessageSegment | str): 该节点具体的消息内容.
+
+        Returns:
+            Self: 返回自身，以支持链式调用.
+        """
+        node_data = {
+            "uin": str(uin),
+            "name": name,
+            # 这里的 content 可以直接是一个 MessageSegment 对象，或者字符串
+            # 我们将它转换为 Napcat 期望的格式
+            "content": [],
+        }
+
+        if isinstance(content, str):
+            node_data["content"] = [MessageSegment("text", {"text": content}).__dict__]
+        elif isinstance(content, MessageSegment):
+            # 直接使用 MessageSegment 的字典表示
+            node_data["content"] = [content.__dict__]
+        elif isinstance(content, Message):
+            node_data["content"] = [seg.__dict__ for seg in content]
+
+        # 最终提交给API的content需要是消息段的字典列表
+        final_content = []
+        for seg_dict in node_data["content"]:
+            final_content.append({"type": seg_dict["type"], "data": seg_dict["data"]})
+        node_data["content"] = final_content
+
+        # 注意！这里的 data 字段直接就是 node_data，而不是再包一层
+        self.append(MessageSegment("node", node_data))
+        return self
+
+    def face(self, face_id: str | int) -> Self:
+        """追加一个 QQ 原生表情.
+
+        Args:
+            face_id (str | int): QQ 表情的 ID.
+
+        Returns:
+            Self: 返回自身，以支持链式调用.
+        """
+        self.append(MessageSegment("face", {"id": str(face_id)}))
+        return self
+
+    def record(self, file: str) -> Self:
+        r"""追加一段语音.
+
+        Args:
+            file (str): 语音来源 (本地路径, URL, Base64).
+
+        Returns:
+            Self: 返回自身，以支持链式调用.
+        """
+        self.append(MessageSegment("record", {"file": file}))
+        return self
+
+    def video(self, file: str) -> Self:
+        r"""追加一个视频.
+
+        Args:
+            file (str): 视频来源 (本地路径, URL, Base64).
+
+        Returns:
+            Self: 返回自身，以支持链式调用.
+        """
+        self.append(MessageSegment("video", {"file": file}))
+        return self
+
+    def music(self, music_type: str, music_id: str) -> Self:
+        """追加一个音乐分享 (QQ音乐/网易云等).
+
+        Args:
+            music_type (str): 音乐平台类型, 'qq', '163', 'kugou' 等.
+            music_id (str): 音乐的 ID.
+
+        Returns:
+            Self: 返回自身，以支持链式调用.
+        """
+        self.append(MessageSegment("music", {"type": music_type, "id": music_id}))
+        return self
+
+    def music_custom(self, url: str, audio: str, title: str, image: str | None = None) -> Self:
+        """追加一个自定义的音乐分享卡片.
+
+        Args:
+            url (str): 点击卡片后跳转的链接.
+            audio (str): 音频的 URL.
+            title (str): 音乐标题.
+            image (str | None, optional): 封面图片的 URL. Defaults to None.
+
+        Returns:
+            Self: 返回自身，以支持链式调用.
+        """
+        data = {"type": "custom", "url": url, "audio": audio, "title": title}
+        if image:
+            data["image"] = image
+        self.append(MessageSegment("music", data))
+        return self

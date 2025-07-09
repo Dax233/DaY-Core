@@ -82,7 +82,13 @@ async def handle_kick(adapter: Adapter, event: GroupMessageEvent) -> None:
 #   ([mhd]?)             -> 捕获时间单位 (m, h, d)，也是可选的
 @on_regex(r"^\/ban\s+\[CQ:at,qq=(\d+)\](?:\s+(\d+)([mhd]?))?$").handle()
 async def handle_ban(adapter: Adapter, event: GroupMessageEvent, matched: Match) -> None:
-    """处理禁言命令，支持分钟(m)、小时(h)、天(d)单位."""
+    """处理禁言命令，支持分钟(m)、小时(h)、天(d)单位.
+
+    Args:
+        adapter (Adapter): 适配器实例，用于发送消息。
+        event (GroupMessageEvent): 群消息事件对象，包含触发此事件的群信息。
+        matched (Match): 正则匹配结果对象，包含匹配的用户QQ和时间参数。
+    """
     if not await check_admin_permission(adapter, event):
         return
 
@@ -134,7 +140,12 @@ async def handle_ban(adapter: Adapter, event: GroupMessageEvent, matched: Match)
 
 @on_command("/unban ").handle()
 async def handle_unban(adapter: Adapter, event: GroupMessageEvent) -> None:
-    """处理解禁命令."""
+    """处理解禁命令.
+
+    Args:
+        adapter (Adapter): 适配器实例，用于发送消息。
+        event (GroupMessageEvent): 群消息事件对象，包含触发此事件的群信息。
+    """
     if not await check_admin_permission(adapter, event):
         return
 
@@ -165,7 +176,12 @@ async def handle_unban(adapter: Adapter, event: GroupMessageEvent) -> None:
 
 @on_command("/banall").handle()
 async def handle_ban_all(adapter: Adapter, event: GroupMessageEvent) -> None:
-    """处理开启全员禁言命令."""
+    """处理开启全员禁言命令.
+
+    Args:
+        adapter (Adapter): 适配器实例，用于发送消息。
+        event (GroupMessageEvent): 群消息事件对象，包含触发此事件的群信息。
+    """
     if not await check_admin_permission(adapter, event):
         return
 
@@ -183,7 +199,12 @@ async def handle_ban_all(adapter: Adapter, event: GroupMessageEvent) -> None:
 
 @on_command("/unbanall").handle()
 async def handle_unban_all(adapter: Adapter, event: GroupMessageEvent) -> None:
-    """处理关闭全员禁言命令."""
+    """处理关闭全员禁言命令.
+
+    Args:
+        adapter (Adapter): 适配器实例，用于发送消息。
+        event (GroupMessageEvent): 群消息事件对象，包含触发此事件的群信息。
+    """
     if not await check_admin_permission(adapter, event):
         return
 

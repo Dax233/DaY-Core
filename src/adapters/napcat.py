@@ -425,6 +425,53 @@ class NapcatAdapter(Adapter):
             "get_stranger_info", {"user_id": int(user_id), "no_cache": no_cache}
         )
 
+    async def get_group_msg_history(
+        self, group_id: str, message_seq: int = 0
+    ) -> list[dict[str, Any]] | Any:
+        """获取群消息历史记录.
+
+        Args:
+            group_id (str): 群号.
+            message_seq (int): 起始消息序号, 0 表示从最新开始.
+
+        Returns:
+            list[dict[str, Any]] | Any: 消息列表或 API_FAILED.
+        """
+        logger.info(
+            f"API CALL: get_group_msg_history(group_id={group_id}, message_seq={message_seq})"
+        )
+        # gocq 文档里写着返回的是 messages 字段
+        result = await self.call_api(
+            "get_group_msg_history", {"group_id": int(group_id), "message_seq": message_seq}
+        )
+        return result.get("messages") if isinstance(result, dict) else result
+
+    async def send_group_forward_msg(
+        self, group_id: str, messages: Message
+    ) -> dict[str, Any] | Any:
+        """发送群合并转发消息.
+
+        Args:
+            group_id (str): 要发送到的群号.
+            messages (Message): 包含多个 'node' 类型 MessageSegment 的消息对象.
+
+        Returns:
+            dict[str, Any] | Any: 成功时返回包含 message_id 的字典, 失败时返回 API_FAILED.
+        """
+        logger.info(f"API CALL: send_group_forward_msg(group_id={group_id})")
+
+        # 从 Message 对象中提取出符合 node 格式的字典列表
+        nodes = [{"type": seg.type, "data": seg.data} for seg in messages if seg.type == "node"]
+
+        if not nodes:
+            logger.warning("尝试发送空的合并转发消息，已中止。")
+            return API_FAILED
+
+        return await self.call_api(
+            "send_group_forward_msg",
+            {"group_id": int(group_id), "messages": nodes},
+        )
+
     async def run(self) -> None:
         """启动 Adapter，也就是启动 WebSocket 服务器."""
         logger.info("Napcat 使徒 (服务器模式) 已准备就绪，开门迎客！")
