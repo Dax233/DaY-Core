@@ -40,7 +40,7 @@ class EventRecord(Base):
     post_type = Column(String(20), nullable=False)  # 'message', 'notice', 'request', 'meta_event'
 
     # 为了通用性，我们将具体类型和子类型也记录下来
-    event_type = Column(String(30), nullable=False)  # e.g., 'private', 'group_increase', 'friend'
+    event_type = Column(String(30), nullable=True)  # e.g., 'private', 'group_increase', 'friend'
     sub_type = Column(String(30), nullable=True)
 
     # 关联 ID，让查询更方便
