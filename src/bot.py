@@ -160,10 +160,8 @@ class Bot:
             # 将 Message 对象转换为其内部列表的字典表示
             return [seg.__dict__ for seg in obj]
         # 对于其他 dataclass 对象，使用其 __dict__
-        if hasattr(obj, "__dict__"):
-            return obj.__dict__
         # 对于无法序列化的类型，返回其字符串表示，避免错误
-        return str(obj)
+        return obj.__dict__ if hasattr(obj, "__dict__") else str(obj)
 
     def _init_database(self) -> None:
         """将数据库初始化作为 Bot 的核心内置方法."""
