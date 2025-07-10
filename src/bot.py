@@ -1,6 +1,7 @@
 # src/bot.py
 import asyncio
-import json  # <-- 需要导入 json
+import inspect
+import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -76,6 +77,29 @@ class Bot:
             except Exception as e:
                 logger.error(f"事件处理器发生未知错误: {e}", exc_info=True)
 
+    async def _run_hooks(self, hooks: list[Callable]) -> None:
+        """一个可重用的、支持依赖注入的钩子执行器!"""
+        # 在函数内部导入，避免循环导入问题
+        from .adapters.base import Adapter
+
+        for hook in hooks:
+            try:
+                # --- 这就是从 Matcher 里借鉴来的依赖注入魔法！---
+                hook_params = inspect.signature(hook).parameters
+                injection_args = {}
+
+                for param_name, param in hook_params.items():
+                    if param.annotation == Bot:
+                        injection_args[param_name] = self
+                    elif param.annotation == Adapter:
+                        injection_args[param_name] = self.adapter
+
+                # 调用钩子，并把“恩赐”注入进去！
+                await hook(**injection_args)
+
+            except Exception as e:
+                logger.exception(f"钩子 {getattr(hook, '__name__', str(hook))} 执行时发生异常: {e}")
+
     async def run(self) -> None:
         """启动 Bot 的所有服务."""
         logger.info("Bot 核心已启动...")
@@ -87,14 +111,7 @@ class Bot:
 
         # 3. 执行所有插件注册的启动钩子
         logger.info("正在执行启动钩子...")
-        for hook in self.startup_hooks:
-            # 调用钩子时，可以像依赖注入一样，把 bot 实例传进去
-            try:
-                await hook()
-            except Exception as e:
-                logger.exception(
-                    f"启动钩子 {getattr(hook, '__name__', str(hook))} 执行时发生异常: {e}"
-                )
+        await self._run_hooks(self.startup_hooks)
 
         # 4. 启动事件处理器
         self._event_processor_task = asyncio.create_task(self._event_processor())
@@ -271,11 +288,7 @@ class Bot:
 
         # 1. 执行所有关闭钩子
         logger.info("正在执行关闭钩子...")
-        for hook in self.shutdown_hooks:
-            try:
-                await hook()
-            except Exception as e:
-                logger.error(f"关闭钩子执行时发生异常: {e}", exc_info=True)
+        await self._run_hooks(self.shutdown_hooks)
 
         # 2. 关闭核心服务（如数据库）
         if self.db_engine:
