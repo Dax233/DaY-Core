@@ -1,7 +1,7 @@
 # DaY-Core 配置文件模板
 # 当 config.toml 不存在或版本过旧时，程序会以此为模板创建或更新。
 
-config_version = "0.1.0"
+config_version = "0.1.1"
 
 [adapter.napcat]
 # DaY-Core 作为服务器，监听来自 Napcat 客户端的连接地址和端口
@@ -17,3 +17,10 @@ log_level = "INFO"
 # 允许上传文件的目录，基于项目根目录的相对路径
 # 警告：请确保此目录是安全的，不要设置为项目根目录或包含敏感文件的目录！
 upload_dir = "uploads"
+
+# [logger] 日志记录器（数据库）配置
+[logger]
+# 是否启用消息数据库记录功能
+enable = false
+# 数据库文件的存放路径，基于项目根目录
+database_path = "data/day_core.db"

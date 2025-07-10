@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from .bot import Bot
 
 Handler = Callable[..., Any]
+_startup_hooks: list[Callable] = []
+_shutdown_hooks: list[Callable] = []
 
 
 class Matcher:
@@ -194,3 +196,21 @@ def on_request(request_type: str | None = None, priority: int = 10) -> Matcher:
 # 比如 on_notice("group_increase") 这样的写法，
 # 可以在 rule 函数里判断 event.notice_type 是否等于 "group_increase"。
 # 不过现在这样已经完全可用了，优化可以放在下一个版本！(ゝ∀･)
+
+
+def on_startup(func: Callable) -> Callable:
+    """注册一个启动时执行的函数.
+
+    这是一个装饰器，它会将函数添加到一个全局列表中，供 Bot 在启动时调用.
+    """
+    _startup_hooks.append(func)
+    return func
+
+
+def on_shutdown(func: Callable) -> Callable:
+    """注册一个关闭时执行的函数.
+
+    这是一个装饰器，它会将函数添加到一个全局列表中，供 Bot 在关闭时调用.
+    """
+    _shutdown_hooks.append(func)
+    return func

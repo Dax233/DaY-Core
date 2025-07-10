@@ -9,6 +9,9 @@ from .logger import logger
 if TYPE_CHECKING:
     from .bot import Bot
 
+# 定义一个清晰的项目根目录常量，供所有插件使用
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 class PluginManager:
     """插件管理器.
@@ -29,9 +32,9 @@ class PluginManager:
 
     def load_all_plugins(self) -> None:
         """加载所有插件目录下的插件."""
-        # 定义插件目录的路径
-        human_plugin_dir = Path("plugins_human")
-        ai_plugin_dir = Path("plugins_ai")
+        # 使用 PROJECT_ROOT 来构造绝对路径
+        human_plugin_dir = PROJECT_ROOT / "plugins_human"
+        ai_plugin_dir = PROJECT_ROOT / "plugins_ai"
 
         logger.info("开始加载插件...")
         self._load_from_dir(human_plugin_dir)

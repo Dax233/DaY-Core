@@ -37,6 +37,11 @@ class Config:
         self.log_level: str = str(core_data.get("log_level", "INFO")).upper()
         self.upload_dir: str = str(core_data.get("upload_dir", "uploads"))
 
+        # Logger Settings
+        logger_data = data.get("logger", {})
+        self.logger_enable: bool = bool(logger_data.get("enable", False))
+        self.logger_database_path: str = str(logger_data.get("database_path", "data/day_core.db"))
+
 
 _global_config: Config | None = None
 

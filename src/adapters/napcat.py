@@ -486,7 +486,8 @@ class NapcatAdapter(Adapter):
             dict[str, Any] | Any: 成功时返回 API 响应数据, 失败时返回 API_FAILED.
         """
         logger.info(
-            f"API CALL: upload_group_file(group_id={group_id}, file_path='{file_path}', name='{file_name}')"
+            f"API CALL: upload_group_file(group_id={group_id}, "
+            f"file_path='{file_path}', name='{file_name}')"
         )
         return await self.call_api(
             "upload_group_file",
