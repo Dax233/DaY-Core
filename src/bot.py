@@ -150,6 +150,21 @@ class Bot:
             # 我们使用 INFO 级别，因为它比 DEBUG 更重要，是我们想要日常看到的内容
             logger.info(log_message)
 
+    @staticmethod
+    def _json_serializer(obj: Any) -> Any:
+        """一个静态的、可重用的 JSON 序列化辅助函数.
+
+        专门处理我们自定义的 DataClass 和 Message 对象.
+        """
+        if isinstance(obj, Message):
+            # 将 Message 对象转换为其内部列表的字典表示
+            return [seg.__dict__ for seg in obj]
+        # 对于其他 dataclass 对象，使用其 __dict__
+        if hasattr(obj, "__dict__"):
+            return obj.__dict__
+        # 对于无法序列化的类型，返回其字符串表示，避免错误
+        return str(obj)
+
     def _init_database(self) -> None:
         """将数据库初始化作为 Bot 的核心内置方法."""
         if not self.config.logger_enable:
@@ -217,18 +232,9 @@ class Bot:
             summary = f"机器人生命周期事件: {event.sub_type}"
             event_type = event.meta_event_type
 
-        # 4. 序列化事件详情
-        # 我们需要一个自定义的转换器来处理 Message 对象
-        def json_serializer(obj: Any) -> Any:
-            if isinstance(obj, Message):
-                # 将 Message 对象转换为其内部列表的字典表示
-                return [seg.__dict__ for seg in obj]
-
-            # 对于其他 dataclass 对象，使用其 __dict__
-            # 对于无法序列化的类型，返回其字符串表示，避免错误
-            return obj.__dict__ if hasattr(obj, "__dict__") else str(obj)
-
-        details_json = json.dumps(event, default=json_serializer, ensure_ascii=False, indent=2)
+        details_json = json.dumps(
+            event, default=self._json_serializer, ensure_ascii=False, indent=2
+        )
 
         # 5. 写入数据库
         try:
