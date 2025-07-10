@@ -1,5 +1,4 @@
 # plugins_human/file_plugin.py
-from pathlib import Path
 
 from src.adapters.base import Adapter
 from src.api import API_FAILED
@@ -8,6 +7,7 @@ from src.event import GroupMessageEvent
 from src.logger import logger
 from src.matcher import on_command
 from src.message import Message
+from src.plugin import PROJECT_ROOT
 
 
 @on_command("/upload ").handle()
@@ -38,10 +38,7 @@ async def handle_upload_file(bot: Bot, adapter: Adapter, event: GroupMessageEven
     # 2. 安全检查！
     # 从配置中获取允许的上传目录
     upload_dir_str = bot.config.upload_dir
-    # 项目根目录
-    project_root = Path(__file__).resolve().parent.parent
-    # 构造安全的上传目录和目标文件路径
-    safe_upload_path = (project_root / upload_dir_str).resolve()
+    safe_upload_path = (PROJECT_ROOT / upload_dir_str).resolve()
     target_file_path = (safe_upload_path / file_to_upload).resolve()
 
     # 确保目标文件在我们允许的目录内，并且文件存在

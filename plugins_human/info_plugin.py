@@ -161,7 +161,7 @@ async def handle_get_history(adapter: Adapter, event: GroupMessageEvent) -> None
     for msg in history:
         sender_info = msg.get("sender", {})
         sender_uin = sender_info.get("user_id", "0")
-        sender_name = sender_info.get("card") or sender_info.get("nickname", "未知用户")
+        sender_name = sender_info.get("card") or sender_info.get("nickname", "未知昵称")
         original_message_segments = msg.get("message", [])
 
         # 将原始消息段列表转换为我们的 Message 对象，以便传递
@@ -171,7 +171,7 @@ async def handle_get_history(adapter: Adapter, event: GroupMessageEvent) -> None
 
         # 添加一个历史消息节点
         forward_message.node(uin=str(sender_uin), name=sender_name, content=content_msg)
-    print("构造的合并转发消息段：", forward_message)
+
     # 发送最终的合并转发消息
     result = await adapter.send_group_forward_msg(event.group_id, forward_message)
 

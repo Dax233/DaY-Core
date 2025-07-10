@@ -211,3 +211,4 @@ config.toml
 config_backups/
 .vscode/
 uploads/
+data/
