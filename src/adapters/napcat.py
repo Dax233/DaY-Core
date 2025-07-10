@@ -16,6 +16,9 @@ from ..event import (
     GroupMemberIncreaseNoticeEvent,
     GroupMessageEvent,
     GroupPokeNoticeEvent,
+    HeartbeatEvent,
+    LifecycleEvent,
+    MetaEvent,
     NoticeEvent,
     PrivateMessageEvent,
     RequestEvent,
@@ -188,6 +191,22 @@ class NapcatAdapter(Adapter):
             # 未知的 request 类型
             else:
                 return RequestEvent(**common_event_data, request_type=request_type)
+
+        elif post_type == "meta_event":
+            meta_event_type = raw_event.get("meta_event_type")
+
+            if meta_event_type == "lifecycle":
+                return LifecycleEvent(**common_event_data, sub_type=raw_event.get("sub_type", ""))
+            elif meta_event_type == "heartbeat":
+                return HeartbeatEvent(
+                    **common_event_data,
+                    status=raw_event.get("status"),
+                    interval=raw_event.get("interval", 0),
+                )
+            # 未知的 meta_event 类型
+            else:
+                logger.warning(f"未知的 meta_event_type: {meta_event_type}, 使用通用 MetaEvent.")
+                return MetaEvent(**common_event_data, meta_event_type=meta_event_type)
 
         return None
 
