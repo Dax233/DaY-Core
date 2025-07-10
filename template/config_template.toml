@@ -13,3 +13,7 @@ port = 7094
 debug = true
 # 日志级别: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
 log_level = "INFO"
+
+# 允许上传文件的目录，基于项目根目录的相对路径
+# 警告：请确保此目录是安全的，不要设置为项目根目录或包含敏感文件的目录！
+upload_dir = "uploads"

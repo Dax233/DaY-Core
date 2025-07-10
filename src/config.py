@@ -35,6 +35,7 @@ class Config:
         core_data = data.get("core", {})
         self.debug: bool = bool(core_data.get("debug", True))
         self.log_level: str = str(core_data.get("log_level", "INFO")).upper()
+        self.upload_dir: str = str(core_data.get("upload_dir", "uploads"))
 
 
 _global_config: Config | None = None

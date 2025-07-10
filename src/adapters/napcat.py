@@ -472,6 +472,31 @@ class NapcatAdapter(Adapter):
             {"group_id": int(group_id), "messages": nodes},
         )
 
+    async def upload_group_file(
+        self, group_id: str, file_path: str, file_name: str
+    ) -> dict[str, Any] | Any:
+        """上传群文件.
+
+        Args:
+            group_id (str): 群号.
+            file_path (str): 要上传的本地文件的绝对路径.
+            file_name (str): 上传后在群里显示的文件名.
+
+        Returns:
+            dict[str, Any] | Any: 成功时返回 API 响应数据, 失败时返回 API_FAILED.
+        """
+        logger.info(
+            f"API CALL: upload_group_file(group_id={group_id}, file_path='{file_path}', name='{file_name}')"
+        )
+        return await self.call_api(
+            "upload_group_file",
+            {
+                "group_id": int(group_id),
+                "file": file_path,  # gocq 文档里参数名叫 file
+                "name": file_name,
+            },
+        )
+
     async def run(self) -> None:
         """启动 Adapter，也就是启动 WebSocket 服务器."""
         logger.info("Napcat 使徒 (服务器模式) 已准备就绪，开门迎客！")
