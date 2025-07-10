@@ -223,11 +223,10 @@ class Bot:
             if isinstance(obj, Message):
                 # 将 Message 对象转换为其内部列表的字典表示
                 return [seg.__dict__ for seg in obj]
+
             # 对于其他 dataclass 对象，使用其 __dict__
-            if hasattr(obj, "__dict__"):
-                return obj.__dict__
             # 对于无法序列化的类型，返回其字符串表示，避免错误
-            return str(obj)
+            return obj.__dict__ if hasattr(obj, "__dict__") else str(obj)
 
         details_json = json.dumps(event, default=json_serializer, ensure_ascii=False, indent=2)
 
@@ -260,6 +259,7 @@ class Bot:
         task = asyncio.create_task(Matcher.run_all(self, self.adapter, event))
         self.background_tasks.add(task)
         task.add_done_callback(self.background_tasks.discard)
+        task.add_done_callback(self._handle_background_task_exception)
 
     async def stop(self) -> None:
         """停止 Bot 的所有服务，并优雅地取消所有任务."""
@@ -298,3 +298,14 @@ class Bot:
 
         logger.info("正在召回 Napcat 使徒...")
         await self.adapter.stop()
+
+    def _handle_background_task_exception(self, task: asyncio.Task) -> None:
+        """处理后台任务中的异常并进行日志记录."""
+        try:
+            exception = task.exception()
+            if exception is not None:
+                logger.error(f"后台任务异常: {exception}", exc_info=True)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"检查后台任务异常时出错: {e}", exc_info=True)

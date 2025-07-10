@@ -33,7 +33,9 @@ class EventRecord(Base):
     __tablename__ = "event_records"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    time = Column(DateTime, nullable=False, default=datetime.datetime.now)
+    time = Column(
+        DateTime, nullable=False, default=lambda: datetime.datetime.now(datetime.timezone.utc)
+    )
     self_id = Column(String, nullable=False)
     post_type = Column(String(20), nullable=False)  # 'message', 'notice', 'request', 'meta_event'
 

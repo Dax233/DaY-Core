@@ -205,6 +205,7 @@ class NapcatAdapter(Adapter):
                 )
             # 未知的 meta_event 类型
             else:
+                logger.warning(f"未知的 meta_event_type: {meta_event_type}, 使用通用 MetaEvent.")
                 return MetaEvent(**common_event_data, meta_event_type=meta_event_type)
 
         return None
