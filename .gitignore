@@ -212,8 +212,8 @@ config_backups/
 .vscode/
 uploads/
 data/
-plugin_ai/*
-plugin_human/*
+plugins_ai/*
+plugins_human/*
 
 
 !plugins_human\__init__.py
