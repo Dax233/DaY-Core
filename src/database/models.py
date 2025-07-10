@@ -25,7 +25,7 @@ class MessageRecord(Base):
     __tablename__ = "message_records"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    time = Column(DateTime, nullable=False, default=datetime.datetime.now)
+    time = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     self_id = Column(String, nullable=False)
     message_type = Column(String(20), nullable=False)  # 'group' or 'private'
     group_id = Column(String, nullable=True)  # 私聊时为 None
