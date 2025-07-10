@@ -1,6 +1,7 @@
 # src/bot.py
 import asyncio
 import json  # <-- 需要导入 json
+from collections.abc import Callable
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -26,8 +27,8 @@ class Bot:
         self.background_tasks: set[asyncio.Task] = set()
 
         # --- 在这里初始化所有属性！ ---
-        self.startup_hooks: list[callable] = []
-        self.shutdown_hooks: list[callable] = []
+        self.startup_hooks: list[Callable] = []
+        self.shutdown_hooks: list[Callable] = []
         self.db_engine = None
         self.db_session_factory: sessionmaker | None = None
 
@@ -84,7 +85,12 @@ class Bot:
         logger.info("正在执行启动钩子...")
         for hook in self.startup_hooks:
             # 调用钩子时，可以像依赖注入一样，把 bot 实例传进去
-            await hook()
+            try:
+                await hook()
+            except Exception as e:
+                logger.exception(
+                    f"启动钩子 {getattr(hook, '__name__', str(hook))} 执行时发生异常: {e}"
+                )
 
         # 4. 启动事件处理器
         self._event_processor_task = asyncio.create_task(self._event_processor())
@@ -159,7 +165,10 @@ class Bot:
         # 1. 执行所有关闭钩子
         logger.info("正在执行关闭钩子...")
         for hook in self.shutdown_hooks:
-            await hook()
+            try:
+                await hook()
+            except Exception as e:
+                logger.error(f"关闭钩子执行时发生异常: {e}", exc_info=True)
 
         # 2. 关闭核心服务（如数据库）
         if self.db_engine:
