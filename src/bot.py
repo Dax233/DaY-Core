@@ -3,6 +3,7 @@ import asyncio
 import json  # <-- 需要导入 json
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -10,10 +11,21 @@ from sqlalchemy.orm import sessionmaker
 from .adapters.napcat import NapcatAdapter
 from .api import resolve_response  # <-- 导入响应处理器
 from .config import get_config
-from .database.models import Base, MessageRecord
-from .event import BaseEvent, MessageEvent
+from .database.models import Base, EventRecord
+from .event import (
+    BaseEvent,
+    FriendAddRequestEvent,
+    GroupAddRequestEvent,
+    GroupMessageEvent,
+    HeartbeatEvent,
+    LifecycleEvent,
+    MessageEvent,
+    NoticeEvent,
+    PrivateMessageEvent,
+)
 from .logger import logger
 from .matcher import Matcher, _shutdown_hooks, _startup_hooks
+from .message import Message
 from .plugin import PluginManager
 from .queue import raw_event_queue  # <-- 导入队列
 
@@ -55,14 +67,7 @@ class Bot:
                 if raw_event_dict.get("post_type"):
                     day_event = self.adapter._convert_to_day_event(raw_event_dict)
                     if day_event:
-                        # 在分发给 Matcher 之前，执行核心的消息记录逻辑
-                        self._log_message_if_enabled(day_event)
-                        task = asyncio.create_task(Matcher.run_all(self, self.adapter, day_event))
-                        # 将新创建的任务添加到我们的“控制中心”
-                        self.background_tasks.add(task)
-                        # 我们再给任务绑定一个“完成回调”，当任务执行完毕后，
-                        # 自动把它从“控制中心”里移除，避免内存泄漏！
-                        task.add_done_callback(self.background_tasks.discard)
+                        self._handle_event(day_event)
                 elif raw_event_dict.get("echo"):
                     resolve_response(raw_event_dict)
                 else:
@@ -77,7 +82,6 @@ class Bot:
 
         # 1. 初始化核心服务（如数据库）
         self._init_database()
-
         # 2. 从全局列表加载钩子
         self._load_hooks()
 
@@ -107,6 +111,45 @@ class Bot:
             f"已加载 {len(self.startup_hooks)} 个启动钩子和 {len(self.shutdown_hooks)} 个关闭钩子。"
         )
 
+    def _log_pretty_event(self, event: BaseEvent) -> None:
+        """将事件以易于阅读的格式打印到日志."""
+        log_message = ""
+        if isinstance(event, GroupMessageEvent):
+            sender_name = (
+                (event.sender.get("card") or event.sender.get("nickname", "未知昵称"))
+                if event.sender
+                else "未知"
+            )
+            log_message = (
+                f"群聊消息 | 群: {event.group_id} | "
+                f"用户: {sender_name}({event.user_id}) | "
+                f"内容: {event.message.get_plain_text()[:50]}..."
+            )
+        elif isinstance(event, PrivateMessageEvent):
+            sender_name = event.sender.get("nickname", "未知昵称") if event.sender else "未知"
+            log_message = (
+                f"私聊消息 | 用户: {sender_name}({event.user_id}) | "
+                f"内容: {event.message.get_plain_text()[:50]}..."
+            )
+        elif isinstance(event, NoticeEvent):
+            log_message = (
+                f"通知事件 | 类型: {event.notice_type} | "
+                f"子类型: {getattr(event, 'sub_type', 'N/A')}"
+            )
+        # 对于心跳事件，我们用 DEBUG 等级，因为它太频繁了，会刷屏
+        elif isinstance(event, HeartbeatEvent):
+            status = event.status or {}
+            online_status = "在线" if status.get("online") else "离线"
+            logger.debug(f"元事件 | 心跳 | 状态: {online_status}")
+            return  # 直接返回，不走下面的 INFO
+        elif isinstance(event, LifecycleEvent):
+            log_message = f"元事件 | 生命周期 | 类型: {event.sub_type}"
+
+        # 只有在生成了易读日志时才打印
+        if log_message:
+            # 我们使用 INFO 级别，因为它比 DEBUG 更重要，是我们想要日常看到的内容
+            logger.info(log_message)
+
     def _init_database(self) -> None:
         """将数据库初始化作为 Bot 的核心内置方法."""
         if not self.config.logger_enable:
@@ -127,36 +170,96 @@ class Bot:
         Base.metadata.create_all(engine)
         logger.info("数据库表结构已确认。")
 
-    def _log_message_if_enabled(self, event: BaseEvent) -> None:
-        """如果数据库功能已启用，则记录消息事件.
+    def _log_event_if_enabled(self, event: BaseEvent) -> None:
+        """如果数据库功能已启用，则记录事件.
 
         Args:
             event (BaseEvent): 任意事件对象.
         """
-        # 只处理消息事件，并且确保数据库已启用
-        if not isinstance(event, MessageEvent) or not self.db_session_factory:
+        # 1. 检查总开关
+        if not self.db_session_factory:
             return
 
+        # 2. 根据神谕，忽略心跳事件
+        if isinstance(event, HeartbeatEvent):
+            return
+
+        # 3. 准备写入数据库的数据
+        summary = "未知事件"
+        event_type = "unknown"
+        sub_type = getattr(event, "sub_type", None)
+        user_id = getattr(event, "user_id", None)
+        group_id = getattr(event, "group_id", None)
+
+        # --- 开始咏唱，为不同事件生成摘要 ---
+        if isinstance(event, MessageEvent):
+            sender_name = (
+                (event.sender.get("card") or event.sender.get("nickname", "未知"))
+                if event.sender
+                else "未知"
+            )
+            summary = f"来自 {sender_name}({event.user_id}) 的消息: "
+            summary += f"{event.message.get_plain_text()[:50]}..."
+            event_type = event.message_type
+        elif isinstance(event, FriendAddRequestEvent):
+            summary = f"来自 {event.user_id} 的好友请求，验证消息: '{event.comment}'"
+            event_type = event.request_type
+        elif isinstance(event, GroupAddRequestEvent):
+            action = "申请加入" if event.sub_type == "add" else "邀请我加入"
+            summary = (
+                f"用户 {event.user_id} {action}群 {event.group_id}，验证消息: '{event.comment}'"
+            )
+            event_type = event.request_type
+        elif isinstance(event, NoticeEvent):
+            summary = f"收到通知: {event.notice_type}, 子类型: {event.sub_type}"
+            event_type = event.notice_type
+        elif isinstance(event, LifecycleEvent):
+            summary = f"机器人生命周期事件: {event.sub_type}"
+            event_type = event.meta_event_type
+
+        # 4. 序列化事件详情
+        # 我们需要一个自定义的转换器来处理 Message 对象
+        def json_serializer(obj: Any) -> Any:
+            if isinstance(obj, Message):
+                # 将 Message 对象转换为其内部列表的字典表示
+                return [seg.__dict__ for seg in obj]
+            # 对于其他 dataclass 对象，使用其 __dict__
+            if hasattr(obj, "__dict__"):
+                return obj.__dict__
+            # 对于无法序列化的类型，返回其字符串表示，避免错误
+            return str(obj)
+
+        details_json = json.dumps(event, default=json_serializer, ensure_ascii=False, indent=2)
+
+        # 5. 写入数据库
         try:
             with self.db_session_factory() as session:
-                record = MessageRecord(
+                record = EventRecord(
                     self_id=event.self_id,
-                    message_type=event.message_type,
-                    group_id=event.group_id if event.message_type == "group" else None,
-                    user_id=event.user_id,
-                    # 优先使用群名片，其次是昵称
-                    sender_name=(
-                        event.sender.get("card") or event.sender.get("nickname", "未知昵称")
-                    )
-                    if event.sender
-                    else "未知发送者",
-                    raw_message=event.raw_message,
+                    post_type=event.post_type,
+                    event_type=event_type,
+                    sub_type=sub_type,
+                    group_id=group_id,
+                    user_id=user_id,
+                    summary=summary,
+                    details=details_json,
                 )
                 session.add(record)
                 session.commit()
-                logger.debug(f"核心记录器：消息已存入数据库: {record}")
+                logger.debug(f"核心记录器：事件已存入数据库: {record}")
         except Exception as e:
             logger.error(f"核心记录器：写入数据库时发生错误: {e}", exc_info=True)
+
+    def _handle_event(self, event: BaseEvent) -> None:
+        """事件分发和核心处理的内部方法."""
+        self._log_pretty_event(event)
+        # 将所有需要记录的事件都交给记录器处理
+        self._log_event_if_enabled(event)
+
+        # 将事件分发给所有匹配的 Matcher
+        task = asyncio.create_task(Matcher.run_all(self, self.adapter, event))
+        self.background_tasks.add(task)
+        task.add_done_callback(self.background_tasks.discard)
 
     async def stop(self) -> None:
         """停止 Bot 的所有服务，并优雅地取消所有任务."""

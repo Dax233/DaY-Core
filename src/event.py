@@ -138,3 +138,28 @@ class GroupAddRequestEvent(RequestEvent):
     group_id: str = ""
     user_id: str = ""
     comment: str = ""  # 验证信息
+
+
+@dataclass
+class MetaEvent(BaseEvent):
+    """元事件的基类."""
+
+    post_type: str = "meta_event"
+    meta_event_type: str = ""
+
+
+@dataclass
+class LifecycleEvent(MetaEvent):
+    """生命周期事件."""
+
+    meta_event_type: str = "lifecycle"
+    sub_type: str = ""  # "connect", "enable", "disable"
+
+
+@dataclass
+class HeartbeatEvent(MetaEvent):
+    """心跳事件."""
+
+    meta_event_type: str = "heartbeat"
+    status: Any = None
+    interval: int = 0
