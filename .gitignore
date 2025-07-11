@@ -215,6 +215,7 @@ data/
 plugins_ai/*
 plugins_human/*
 assets/*
+configs/*
 
 !plugins_human\__init__.py
 !plugins_ai\__init__.py

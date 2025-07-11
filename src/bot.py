@@ -36,6 +36,7 @@ class Bot:
 
     def __init__(self) -> None:
         self.config = get_config()
+        self.plugin_configs: dict[str, Any] = {}
         self._event_processor_task: asyncio.Task | None = None
         self.background_tasks: set[asyncio.Task] = set()
 
@@ -49,6 +50,10 @@ class Bot:
         self.adapter = NapcatAdapter(self)
         self.plugin_manager = PluginManager(self)
         self.plugin_manager.load_all_plugins()
+
+    def get_plugin_config(self, plugin_name: str) -> Any | None:
+        """一个辅助方法，让插件可以方便地从 Bot 实例获取自己的配置."""
+        return self.plugin_configs.get(plugin_name)
 
     # --- 新增一个方法：事件处理器循环！ ---
     async def _event_processor(self) -> None:

@@ -42,6 +42,13 @@ class Config:
         self.logger_enable: bool = bool(logger_data.get("enable", False))
         self.logger_database_path: str = str(logger_data.get("database_path", "data/day_core.db"))
 
+        self._raw_data = data
+
+    def get_plugin_config(self, plugin_name: str) -> dict[str, Any]:
+        """增一个方法，专门用于让插件获取自己的配置节."""
+        # _raw_data 保存了从 toml 文件解析出的原始文档对象
+        return self._raw_data.get(plugin_name, {})
+
 
 _global_config: Config | None = None
 
