@@ -21,6 +21,7 @@ from .event import (
     HeartbeatEvent,
     LifecycleEvent,
     MessageEvent,
+    MessageSentEvent,
     NoticeEvent,
     PrivateMessageEvent,
 )
@@ -153,6 +154,11 @@ class Bot:
                 f"私聊消息 | 用户: {sender_name}({event.user_id}) | "
                 f"内容: {event.message.get_plain_text()[:50]}..."
             )
+        elif isinstance(event, MessageSentEvent):
+            log_message = (
+                f"消息已发送 | 目标: {event.group_id or event.user_id} | "
+                f"内容: {event.message.get_plain_text()[:50]}..."
+            )
         elif isinstance(event, NoticeEvent):
             log_message = (
                 f"通知事件 | 类型: {event.notice_type} | "
@@ -236,6 +242,10 @@ class Bot:
             summary = f"来自 {sender_name}({event.user_id}) 的消息: "
             summary += f"{event.message.get_plain_text()[:50]}..."
             event_type = event.message_type
+        elif isinstance(event, MessageSentEvent):
+            summary = f"向 {event.group_id or event.user_id} 发送消息: "
+            summary += f"{event.message.get_plain_text()[:50]}..."
+            event_type = "self_sent"
         elif isinstance(event, FriendAddRequestEvent):
             summary = f"来自 {event.user_id} 的好友请求，验证消息: '{event.comment}'"
             event_type = event.request_type
@@ -280,6 +290,18 @@ class Bot:
         self._log_pretty_event(event)
         # 将所有需要记录的事件都交给记录器处理
         self._log_event_if_enabled(event)
+
+        # 如果事件是 MessageSentEvent 的实例，我们就只记录不响应，直接 return。
+        if isinstance(event, MessageSentEvent):
+            logger.debug("已处理并记录 'message_sent' 事件，不进入响应器。")
+            return
+
+        # 我们之前的守卫也可以保留，作为双重保险
+        if isinstance(event, MessageEvent) and event.user_id == event.self_id:
+            logger.debug(
+                f"已忽略机器人自身消息的响应器匹配 (群: {getattr(event, 'group_id', 'N/A')})"
+            )
+            return
 
         # 将事件分发给所有匹配的 Matcher
         task = asyncio.create_task(Matcher.run_all(self, self.adapter, event))

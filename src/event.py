@@ -163,3 +163,19 @@ class HeartbeatEvent(MetaEvent):
     meta_event_type: str = "heartbeat"
     status: Any = None
     interval: int = 0
+
+
+@dataclass
+class MessageSentEvent(BaseEvent):
+    """机器人自己发送消息后的回执事件.
+
+    这是一个特殊的事件，代表机器人自身行为的结果。
+    它通常只用于记录，而不用于触发响应。
+    """
+
+    post_type: str = "message_sent"
+    message_id: str = ""
+    message: Message = field(default_factory=Message)
+    raw_message: str = ""
+    group_id: str | None = None
+    user_id: str | None = None

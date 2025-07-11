@@ -18,6 +18,7 @@ from ..event import (
     GroupPokeNoticeEvent,
     HeartbeatEvent,
     LifecycleEvent,
+    MessageSentEvent,
     MetaEvent,
     NoticeEvent,
     PrivateMessageEvent,
@@ -96,6 +97,17 @@ class NapcatAdapter(Adapter):
     def _convert_to_day_event(self, raw_event: dict[str, Any]) -> BaseEvent | None:
         """事件认知核心：将 Napcat 的原始 JSON 字典，转换为我们纯洁的 DaY-Core Event 对象."""
         post_type = raw_event.get("post_type")
+
+        if post_type == "message_sent":
+            return MessageSentEvent(
+                self_id=str(raw_event.get("self_id")),
+                time=int(raw_event.get("time", time.time())),
+                message_id=str(raw_event.get("message_id")),
+                message=self._parse_message_segments(raw_event.get("message", [])),
+                raw_message=raw_event.get("raw_message", ""),
+                group_id=str(g_id) if (g_id := raw_event.get("group_id")) else None,
+                user_id=str(u_id) if (u_id := raw_event.get("user_id")) else None,
+            )
 
         common_event_data = {
             "self_id": str(raw_event.get("self_id")),
