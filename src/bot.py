@@ -322,11 +322,11 @@ class Bot:
         await self.adapter.stop()
 
     def _handle_background_task_exception(self, task: asyncio.Task) -> None:
-        """处理后台任务中的异常并进行日志记录."""
+        """处理后台任务异常的回调函数."""
         try:
             exception = task.exception()
             if exception is not None:
-                logger.error(f"后台任务异常: {exception}", exc_info=True)
+                logger.error("后台任务发生异常: {}", exception, exc_info=True)
         except asyncio.CancelledError:
             pass
         except Exception as e:
