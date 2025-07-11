@@ -67,7 +67,6 @@ class PluginManager:
                 # 1. 尝试导入插件的 config 子模块，而不立即导入主模块
                 config_model = None
                 try:
-                    # 'plugins_human.eh_preview.config'
                     config_module_name = f"{module_name}.config"
                     config_module = importlib.import_module(config_module_name)
 
