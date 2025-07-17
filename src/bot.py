@@ -18,6 +18,7 @@ from .event import (
     FriendAddRequestEvent,
     GroupAddRequestEvent,
     GroupMessageEvent,
+    GroupRecallNoticeEvent,
     HeartbeatEvent,
     LifecycleEvent,
     MessageEvent,
@@ -164,6 +165,13 @@ class Bot:
                 f"通知事件 | 类型: {event.notice_type} | "
                 f"子类型: {getattr(event, 'sub_type', 'N/A')}"
             )
+            # 为我们新的撤回事件定制更详细的日志
+            if isinstance(event, GroupRecallNoticeEvent):
+                log_message = (
+                    f"通知事件 | 消息撤回 | 群: {event.group_id} | "
+                    f"操作者: {event.operator_id} | "
+                    f"原消息ID: {event.message_id}"
+                )
         # 对于心跳事件，我们用 DEBUG 等级，因为它太频繁了，会刷屏
         elif isinstance(event, HeartbeatEvent):
             status = event.status or {}

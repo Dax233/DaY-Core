@@ -169,8 +169,8 @@ class HeartbeatEvent(MetaEvent):
 class MessageSentEvent(BaseEvent):
     """机器人自己发送消息后的回执事件.
 
-    这是一个特殊的事件，代表机器人自身行为的结果。
-    它通常只用于记录，而不用于触发响应。
+    这是一个特殊的事件，代表机器人自身行为的结果.
+    它通常只用于记录，而不用于触发响应.
     """
 
     post_type: str = "message_sent"
@@ -179,3 +179,22 @@ class MessageSentEvent(BaseEvent):
     raw_message: str = ""
     group_id: str | None = None
     user_id: str | None = None
+
+
+@dataclass
+class GroupRecallNoticeEvent(NoticeEvent):
+    """群消息撤回事件.
+
+    Attributes:
+        notice_type (str): "group_recall"
+        group_id (str): 群号
+        user_id (str): 撤回消息的成员 QQ 号
+        operator_id (str): 操作者的 QQ 号 (如果是管理员撤回)
+        message_id (str): 被撤回的消息 ID
+    """
+
+    notice_type: str = "group_recall"
+    group_id: str = ""
+    user_id: str = ""
+    operator_id: str = ""
+    message_id: str = ""

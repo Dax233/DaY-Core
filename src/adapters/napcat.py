@@ -16,6 +16,7 @@ from ..event import (
     GroupMemberIncreaseNoticeEvent,
     GroupMessageEvent,
     GroupPokeNoticeEvent,
+    GroupRecallNoticeEvent,
     HeartbeatEvent,
     LifecycleEvent,
     MessageSentEvent,
@@ -176,6 +177,15 @@ class NapcatAdapter(Adapter):
                     group_id=str(raw_event.get("group_id")),
                     user_id=str(raw_event.get("user_id")),
                     target_id=str(raw_event.get("target_id")),
+                )
+            # 群消息撤回
+            elif notice_type == "group_recall":
+                return GroupRecallNoticeEvent(
+                    **common_event_data,
+                    group_id=str(raw_event.get("group_id")),
+                    user_id=str(raw_event.get("user_id")),
+                    operator_id=str(raw_event.get("operator_id")),
+                    message_id=str(raw_event.get("message_id")),
                 )
             # 在这里可以继续添加对其他 notice_type 的解析...
             # 如果是未知的 notice 类型，就先返回一个基础的 NoticeEvent
