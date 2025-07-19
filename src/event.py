@@ -199,6 +199,7 @@ class GroupRecallNoticeEvent(NoticeEvent):
     operator_id: str = ""
     message_id: str = ""
 
+
 @dataclass
 class GroupNameChangeEvent(NoticeEvent):
     """群名变更事件.
