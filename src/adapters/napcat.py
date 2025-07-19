@@ -395,6 +395,22 @@ class NapcatAdapter(Adapter):
             {"group_id": int(group_id), "enable": enable},
         )
 
+    async def set_group_name(self, group_id: str, group_name: str) -> Any:
+        """设置群名.
+
+        Args:
+            group_id (str): 群号.
+            group_name (str): 新的群名.
+
+        Returns:
+            Any: API 调用结果.
+        """
+        logger.info(f"API CALL: set_group_name(group_id={group_id}, group_name='{group_name}')")
+        return await self.call_api(
+            "set_group_name",
+            {"group_id": int(group_id), "group_name": group_name},
+        )
+
     async def get_group_list(self, no_cache: bool = False) -> list[dict[str, Any]] | Any:
         """获取群列表.
 

@@ -198,3 +198,21 @@ class GroupRecallNoticeEvent(NoticeEvent):
     user_id: str = ""
     operator_id: str = ""
     message_id: str = ""
+
+@dataclass
+class GroupNameChangeEvent(NoticeEvent):
+    """群名变更事件.
+
+    Attributes:
+        notice_type (str): "notify"
+        sub_type (str): "group_name"
+        group_id (str): 群号
+        operator_id (str): 操作者 QQ 号
+        name_new (str): 新的群名
+    """
+
+    notice_type: str = "notify"
+    sub_type: str = "group_name"
+    group_id: str = ""
+    operator_id: str = ""
+    name_new: str = ""
