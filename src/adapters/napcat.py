@@ -16,8 +16,10 @@ from ..event import (
     GroupMemberIncreaseNoticeEvent,
     GroupMessageEvent,
     GroupPokeNoticeEvent,
+    GroupRecallNoticeEvent,
     HeartbeatEvent,
     LifecycleEvent,
+    MessageSentEvent,
     MetaEvent,
     NoticeEvent,
     PrivateMessageEvent,
@@ -97,6 +99,17 @@ class NapcatAdapter(Adapter):
         """事件认知核心：将 Napcat 的原始 JSON 字典，转换为我们纯洁的 DaY-Core Event 对象."""
         post_type = raw_event.get("post_type")
 
+        if post_type == "message_sent":
+            return MessageSentEvent(
+                self_id=str(raw_event.get("self_id")),
+                time=int(raw_event.get("time", time.time())),
+                message_id=str(raw_event.get("message_id")),
+                message=self._parse_message_segments(raw_event.get("message", [])),
+                raw_message=raw_event.get("raw_message", ""),
+                group_id=str(g_id) if (g_id := raw_event.get("group_id")) else None,
+                user_id=str(u_id) if (u_id := raw_event.get("user_id")) else None,
+            )
+
         common_event_data = {
             "self_id": str(raw_event.get("self_id")),
             "time": int(raw_event.get("time", time.time())),
@@ -164,6 +177,15 @@ class NapcatAdapter(Adapter):
                     group_id=str(raw_event.get("group_id")),
                     user_id=str(raw_event.get("user_id")),
                     target_id=str(raw_event.get("target_id")),
+                )
+            # 群消息撤回
+            elif notice_type == "group_recall":
+                return GroupRecallNoticeEvent(
+                    **common_event_data,
+                    group_id=str(raw_event.get("group_id")),
+                    user_id=str(raw_event.get("user_id")),
+                    operator_id=str(raw_event.get("operator_id")),
+                    message_id=str(raw_event.get("message_id")),
                 )
             # 在这里可以继续添加对其他 notice_type 的解析...
             # 如果是未知的 notice 类型，就先返回一个基础的 NoticeEvent
@@ -371,6 +393,22 @@ class NapcatAdapter(Adapter):
         return await self.call_api(
             "set_group_whole_ban",
             {"group_id": int(group_id), "enable": enable},
+        )
+
+    async def set_group_name(self, group_id: str, group_name: str) -> Any:
+        """设置群名.
+
+        Args:
+            group_id (str): 群号.
+            group_name (str): 新的群名.
+
+        Returns:
+            Any: API 调用结果.
+        """
+        logger.info(f"API CALL: set_group_name(group_id={group_id}, group_name='{group_name}')")
+        return await self.call_api(
+            "set_group_name",
+            {"group_id": int(group_id), "group_name": group_name},
         )
 
     async def get_group_list(self, no_cache: bool = False) -> list[dict[str, Any]] | Any:

@@ -42,13 +42,12 @@ class Message(list[MessageSegment]):
 
     def __add__(self, other: "MessageSegment | Message") -> "Message":
         """拼接消息段或另一条消息，返回一个新的 Message 对象."""
-        new_message = self.copy()  # 创建一个副本，不修改原对象
+        new_message = Message(self)
         if isinstance(other, MessageSegment):
             new_message.append(other)
         elif isinstance(other, Message):
             new_message.extend(other)
         else:
-            # 如果尝试拼接不支持的类型，就抛出异常
             return NotImplemented
         return new_message
 
