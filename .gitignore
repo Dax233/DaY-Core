@@ -213,6 +213,7 @@ config_backups/
 uploads/
 data/
 plugins_ai/*
+plugins_off/*
 plugins_human/*
 assets/*
 configs/*
