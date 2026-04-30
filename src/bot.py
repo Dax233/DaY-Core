@@ -264,7 +264,7 @@ class Bot:
             )
             event_type = event.request_type
         elif isinstance(event, NoticeEvent):
-            summary = f"收到通知: {event.notice_type}, 子类型: {event.sub_type}"
+            summary = f"收到通知: {event.notice_type}, 子类型: {sub_type}"
             event_type = event.notice_type
         elif isinstance(event, LifecycleEvent):
             summary = f"机器人生命周期事件: {event.sub_type}"
