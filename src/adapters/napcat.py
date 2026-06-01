@@ -71,7 +71,7 @@ async def global_ws_handler(websocket: websockets.WebSocketServerProtocol) -> No
     finally:
         # 无论如何，当连接结束时，一定要把它从我们的连接池里移除
         if _adapter_instance:
-            _adapter_instance.connections.remove(websocket)
+            _adapter_instance.connections.discard(websocket)
         logger.info(f"与 Napcat 客户端 {client_addr} 的会话结束。")
 
 
@@ -128,21 +128,6 @@ class NapcatAdapter(Adapter):
                 "time": int(raw_event.get("time", time.time())),
             }
             # 根据具体消息类型，实例化不同的 Event 类
-            if message_type == "private":
-                return PrivateMessageEvent(**common_data)
-            elif message_type == "group":
-                return GroupMessageEvent(group_id=str(raw_event.get("group_id")), **common_data)
-
-            message_type = raw_event.get("message_type")
-            common_data = {
-                **common_event_data,  # <-- 合并通用数据
-                "sub_type": raw_event.get("sub_type", ""),
-                "message_id": str(raw_event.get("message_id")),
-                "message": self._parse_message_segments(raw_event.get("message", [])),
-                "raw_message": raw_event.get("raw_message", ""),
-                "user_id": str(raw_event.get("user_id")),
-                "sender": raw_event.get("sender"),
-            }
             if message_type == "private":
                 return PrivateMessageEvent(**common_data)
             elif message_type == "group":
@@ -465,6 +450,22 @@ class NapcatAdapter(Adapter):
                 "user_id": int(user_id),
                 "no_cache": no_cache,
             },
+        )
+
+    async def get_group_info(self, group_id: str, no_cache: bool = False) -> dict[str, Any] | Any:
+        """获取群信息.
+
+        Args:
+            group_id (str): 群号.
+            no_cache (bool): 是否不使用缓存。
+
+        Returns:
+            dict[str, Any] | Any: 成功时返回群信息字典, 失败时返回 API_FAILED.
+        """
+        logger.info(f"API CALL: get_group_info(group_id={group_id}, no_cache={no_cache})")
+        return await self.call_api(
+            "get_group_info",
+            {"group_id": int(group_id), "no_cache": no_cache},
         )
 
     async def get_stranger_info(self, user_id: str, no_cache: bool = False) -> dict[str, Any] | Any:

@@ -104,7 +104,14 @@ def on_command(command: str, priority: int = 5) -> Matcher:
     """
 
     def rule(event: BaseEvent) -> bool:
-        return isinstance(event, MessageEvent) and event.raw_message.strip().startswith(command)
+        if not isinstance(event, MessageEvent):
+            return False
+
+        text = event.raw_message.strip()
+        if command.endswith((" ", "\t", "\n")):
+            return text.startswith(command)
+
+        return text == command or text.startswith(f"{command} ")
 
     return Matcher(rule=rule, priority=priority)
 
